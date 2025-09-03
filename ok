@@ -10,3 +10,6 @@ EnableWrkTab=1
 isDev=0
 EnableTranslation=1
 TranslationKey=95fn6fnDaGJts9F6o277qOQhv5QeauvDO9rvJfQ3FD7YyXG2fqMrJQQJ99BHACULyCpXJ3w3AAAbACOGmrz8
+
+
+pm2 start dist/app.js --name "backend"
