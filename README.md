@@ -4,3 +4,6 @@ https://drive.google.com/file/d/1KwilYOkOWg9VAIN66a5g0j-gHDLqiVyH/view
 
 
 pm2 start node_modules/next/dist/bin/next --name frontend -- start -p 3001
+
+
+NEXT_PUBLIC_API_BASE_URL=http://192.168.6.168:3000
