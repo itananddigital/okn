@@ -1,0 +1,119 @@
+This guide will walk you through a complete, production-style deployment of Apache Superset using a non-root user, Gunicorn as the WSGI server, and NGINX as a reverse proxy. We’ll also cover enabling Superset to auto-start on system boot and monitoring logs.
+Step 1: Create a Dedicated Group and User for Superset
+This creates a dedicated user and group, which enhances security and file access control.
+sudo groupadd supersetgroup
+sudo adduser supersetuser
+sudo usermod -aG supersetgroup supersetuser
+Step 2: Setup Directory for Superset
+These permissions ensure only the supersetuser and users in supersetgroup can access the directory.
+mkdir /home/supersetuser && mkdir /home/supersetuser/superset
+sudo chown -R supersetuser:supersetgroup /home/supersetuser/superset
+sudo chmod -R 770 /home/supersetuser/superset
+Step 3: Grant Sudo Access to Superset User
+Login with a sudo-enabled account:
+This allows supersetuser to execute sudo commands.
+su - your_admin_user
+sudo usermod -aG sudo supersetuser
+Step 4: Switch to Superset User and Install Dependencies
+These libraries and packages are needed to compile Python modules and connect to databases like PostgreSQL/Mysql.
+su - supersetuser
+cd /home/supersetuser/superset
+
+sudo apt install -y build-essential libssl-dev libffi-dev python3-dev python3-pip libsasl2-dev libldap2-dev libpq-dev software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt install -y build-essential libssl-dev libffi-dev python3.10-dev python3.10-venv
+Step 5: Create Python Virtual Environment and Install Superset
+Install env and activate:
+python3.10 -m venv superset-venv
+source superset-venv/bin/activate
+pip install apache-superset
+Set environment variables:
+export FLASK_APP=superset
+export SUPERSET_CONFIG_PATH=/home/supersetuser/superset_config/superset_config.py
+
+# Persist the FLASK_APP variable
+echo 'export FLASK_APP=superset' >> ~/.bashrc
+source ~/.bashrc
+Step 6: Initialize Superset
+Create a superset_config.py file
+mkdir /home/supersetuser/superset_config
+
+
+openssl rand -base64 42
+# ex output : JIyxsMeXz+4LL2ITuOdXEPHDHqIqJqVUFLuza/gn150WOkrRMux2Vf4b
+
+# Add the generated key in the below file path :
+vi /home/supersetuser/superset_config/superset_config.py
+
+SECRET_KEY = 'your-generated-key'
+This sets up the database, creates an admin user, loads demo data, and initializes Superset.
+superset db upgrade
+superset fab create-admin
+superset load_examples
+superset init
+Install Gunicorn and PostgreSQL driver:
+pip install psycopg2 gunicorn
+Step 7: Create a Systemd Service for Superset
+Switch to a sudo-enabled user:
+sudo su
+Edit the Superset systemd service file:
+sudo vi /etc/systemd/system/superset.service
+Add the following content:
+[Unit]
+Description=Apache Superset
+After=network.target
+
+[Service]
+User=supersetuser
+Group=supersetgroup
+WorkingDirectory=/home/supersetuser/superset
+Environment="PATH=/home/supersetuser/superset/superset-venv/bin"
+Environment="SUPERSET_CONFIG_PATH=/home/supersetuser/superset_config/superset_config.py"
+Environment="FLASK_APP=superset"
+ExecStart=/home/supersetuser/superset/superset-venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8088 "superset.app:create_app()"
+Restart=always
+StandardOutput=append:/var/log/superset/superset.log
+StandardError=append:/var/log/superset/superset-error.log
+
+[Install]
+WantedBy=multi-user.target
+Reload systemd and enable Superset on boot:
+sudo systemctl daemon-reload
+sudo systemctl restart superset
+sudo systemctl enable superset
+Step 8: Install and Configure NGINX
+sudo apt install nginx -y
+sudo nano /etc/nginx/sites-available/superset
+Add the following configuration:
+server {
+   listen 80;
+   server_name YOUR_DOMAIN_OR_IP;
+
+   location / {
+       proxy_pass http://127.0.0.1:8088;
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+   }
+
+   client_max_body_size 50M;
+}
+Enable the site and restart NGINX:
+sudo ln -s /etc/nginx/sites-available/superset /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+Step 9: Check Logs
+NGINX Logs
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
+Gunicorn/Superset Logs
+If you’ve set up logging inside your Gunicorn config, you can access logs here:
+tail -f /var/log/superset/superset.log
+tail -f /var/log/superset/superset-error.log
+Or use journalctl:
+journalctl -u superset.service -b
+Conclusion
+Congratulations! You now have Apache Superset running in a production-style setup with systemd and NGINX. You’ve followed best practices for user isolation, service configuration, and logging. You’re all set to build powerful data visualizations securely and reliably!
+
+
