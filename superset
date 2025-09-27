@@ -64,19 +64,20 @@ Description=Apache Superset
 After=network.target
 
 [Service]
-User=supersetuser
-Group=supersetgroup
-WorkingDirectory=/home/supersetuser/superset
-Environment="PATH=/home/supersetuser/superset/superset-venv/bin"
-Environment="SUPERSET_CONFIG_PATH=/home/supersetuser/superset_config/superset_config.py"
+User=ig
+WorkingDirectory=/home/ig
+Environment="PATH=/home/ig/superset-venv/bin"
+Environment="SUPERSET_CONFIG_PATH=/home/ig/superset_config/superset_config.py"
 Environment="FLASK_APP=superset"
-ExecStart=/home/supersetuser/superset/superset-venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8088 "superset.app:create_app()"
+ExecStart=/home/ig/superset-venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8088 "superset.app:create_app()"
 Restart=always
 StandardOutput=append:/var/log/superset/superset.log
 StandardError=append:/var/log/superset/superset-error.log
 
 [Install]
 WantedBy=multi-user.target
+
+
 Reload systemd and enable Superset on boot:
 sudo systemctl daemon-reload
 sudo systemctl restart superset
