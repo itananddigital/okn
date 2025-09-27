@@ -1,0 +1,101 @@
+Here’s a safe upgrade plan to upgrade Apache Superset and install the extra SQL Server / ODBC dependencies on your existing Ubuntu + Gunicorn + NGINX deployment (without breaking your running setup).
+1️⃣ Pre-Checks (Very Important)
+Before making changes:
+sudo systemctl status superset   # confirm it's running
+which python3                    # check system python
+
+Backup: Always backup your Superset metadata database first (PostgreSQL/MySQL/SQLite).
+ Example for PostgreSQL:
+pg_dump superset > ~/superset_backup.sql
+
+2️⃣ Upgrade Superset Inside the Virtual Environment
+You installed Superset inside
+ /home/supersetuser/superset/superset-venv
+sudo systemctl stop superset        # stop service
+su - supersetuser
+cd /home/supersetuser/superset
+source superset-venv/bin/activate
+
+# Upgrade pip/setuptools first
+pip install --upgrade pip setuptools wheel
+
+# Upgrade Superset to latest stable
+pip install --upgrade apache-superset
+
+Run DB Migrations
+Still inside the virtualenv:
+superset db upgrade
+superset init
+
+Then exit the virtualenv:
+deactivate
+
+3️⃣ Install OS Dependencies for SQL Server / ODBC
+Run as a sudo-enabled user (not inside the venv):
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends \
+    build-essential unixodbc-dev unixodbc curl gnupg2
+
+# Add Microsoft repo
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+curl https://packages.microsoft.com/config/debian/11/prod.list | \
+    sudo tee /etc/apt/sources.list.d/mssql-release.list
+
+sudo apt-get update
+sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18
+
+# Add mssql-tools to global PATH
+echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' | sudo tee -a /etc/bash.bashrc
+source /etc/bash.bashrc
+
+4️⃣ Install Python Packages in the Virtual Environment
+Switch back to the Superset venv:
+su - supersetuser
+cd /home/supersetuser/superset
+source superset-venv/bin/activate
+
+pip install --no-cache-dir \
+    pyodbc \
+    SQLAlchemy \
+    pandas \
+    numpy
+deactivate
+
+pymssql is not recommended; use pyodbc with SQL Server.
+5️⃣ Restart Services
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart superset
+sudo systemctl status superset
+sudo systemctl restart nginx
+
+6️⃣ Verify
+
+
+Check Superset version:
+
+ superset version   # inside venv or use: /home/supersetuser/superset/superset-venv/bin/superset version
+Test ODBC drivers:
+
+ odbcinst -q -d -n "ODBC Driver 18 for SQL Server"
+Confirm web UI works: http://your-domain
+
+
+⚡ Tips for Production
+
+
+Pin Versions: To avoid future breaking changes, create a requirements.txt with exact versions:
+
+ apache-superset==<latest_version>
+pyodbc==<version>
+pandas==<version>
+ Then install with:
+
+ pip install -r requirements.txt
+
+System Logs for debugging:
+
+ journalctl -u superset -f
+tail -f /var/log/nginx/error.log
+
