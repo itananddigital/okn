@@ -99,3 +99,107 @@ System Logs for debugging:
  journalctl -u superset -f
 tail -f /var/log/nginx/error.log
 
+
+
+The error shows **file conflicts between `odbcinst` and `unixodbc-common`** while installing ODBC drivers:
+
+```
+trying to overwrite '/usr/lib/x86_64-linux-gnu/libodbcinst.so.2.0.0'
+which is also in package libodbcinst2
+...
+trying to overwrite '/etc/odbc.ini'
+which is also in package unixodbc-common
+```
+
+This happens because:
+
+* You already have **unixODBC** libraries installed (from Ubuntu/Debian).
+* The Microsoft ODBC package you’re installing tries to replace those same files.
+
+---
+
+
+
+
+Force dpkg to overwrite conflicting files:
+
+```bash
+sudo dpkg -i --force-overwrite /var/cache/apt/archives/odbcinst*_amd64.deb
+sudo apt -f install
+```
+
+* `-f install` will fix broken dependencies.
+
+---
+
+ Remove Existing Packages Before Install (Cleaner)
+
+Remove old unixODBC first:
+
+```bash
+sudo apt remove --purge unixodbc unixodbc-common libodbcinst2
+sudo apt autoremove
+sudo apt clean
+sudo apt update
+```
+
+Then reinstall Microsoft ODBC:
+
+```bash
+sudo apt install -y msodbcsql18 unixodbc
+```
+
+---
+
+# Use Microsoft Repo Properly
+
+If installing Microsoft SQL ODBC, use their official instructions:
+
+```bash
+sudo su
+curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+curl https://packages.microsoft.com/config/debian/11/prod.list \
+     > /etc/apt/sources.list.d/mssql-release.list
+exit
+sudo apt update
+sudo ACCEPT_EULA=Y apt install -y msodbcsql18
+```
+
+This ensures the correct unixODBC version is installed automatically.
+
+---
+
+## 🔎 After Fix
+
+Verify installation:
+
+```bash
+odbcinst -q -d
+```
+
+You should see something like:
+
+```
+[ODBC Driver 18 for SQL Server]
+```
+
+---
+
+### 👉 Recommended Path
+
+* If you **only need PostgreSQL ODBC**, you don’t need Microsoft drivers.
+  Just run:
+
+```bash
+sudo apt install -y unixodbc odbc-postgresql
+```
+
+Would you like me to guide specifically for **PostgreSQL ODBC** or **Microsoft SQL ODBC**?
+
+
+
+
+
+
+
+
