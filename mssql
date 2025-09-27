@@ -1,5 +1,65 @@
 
 
+Got it 👍 I see what’s happening in your second screenshot.
+
+The error is still coming from **`odbcinst1debian2`** trying to overwrite files already provided by `unixodbc-common`. Your attempt with `dpkg --force-overwrite` failed because the `.deb` file was already cleaned from `/var/cache/apt/archives`.
+
+---
+
+### 🔧 Fix (Safe Way)
+
+1. **Remove conflicting unixODBC packages completely:**
+
+```bash
+sudo apt-get remove -y unixodbc unixodbc-dev libodbcinst2 odbcinst odbcinst1debian2 unixodbc-common
+```
+
+2. **Clean up broken installs:**
+
+```bash
+sudo apt-get autoremove -y
+sudo apt-get clean
+sudo apt-get update
+```
+
+3. **Force reinstall msodbcsql18 + mssql-tools18 from Microsoft repo only (not the system’s unixODBC):**
+
+```bash
+sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18
+```
+
+4. **If apt still complains about `odbcinst1debian2` conflict**, install with force overwrite:
+
+```bash
+sudo apt-get install -y --allow-downgrades --allow-change-held-packages --allow-conflicts --allow-remove-essential --allow-unauthenticated msodbcsql18 mssql-tools18
+```
+
+---
+
+### ⚡ Verify installation
+
+Run:
+
+```bash
+/opt/mssql-tools18/bin/sqlcmd -?
+```
+
+If installed correctly, you’ll see the `sqlcmd` help output.
+
+---
+
+👉 Do you want me to prepare a **single repair script** that removes conflicts, cleans, and installs everything in one go (so you just copy–paste and run)?
+
+
+
+
+
+
+
+
+
+
+
 
 Thanks for sharing the screenshot 🙏. I can see the issue — it happens because of **package conflicts** while installing Microsoft SQL Server ODBC drivers and tools on Debian/Ubuntu.
 
