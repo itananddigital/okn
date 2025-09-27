@@ -1,5 +1,82 @@
 
 
+Thanks for the update 🙏. I see what’s happening from your latest screenshot:
+
+* The error still points to **`odbcinst1debian2` vs `unixodbc-common` conflict**.
+* Apt cache doesn’t have the `.deb` files anymore (`/var/cache/apt/archives` is empty), so `dpkg -i --force-overwrite` fails.
+* `apt-get remove` didn’t help because apt thinks some packages are *not installed* but dependencies are still broken.
+
+---
+
+### ✅ Clean Fix (force Microsoft packages, bypass system unixODBC)
+
+Try these exact steps:
+
+1. **Purge all unixODBC-related packages (force):**
+
+```bash
+sudo dpkg --remove --force-remove-reinstreq unixodbc unixodbc-dev libodbcinst2 odbcinst odbcinst1debian2 unixodbc-common
+```
+
+2. **Clean package manager state:**
+
+```bash
+sudo apt-get -f install
+sudo apt-get autoremove -y
+sudo apt-get clean
+sudo apt-get update
+```
+
+3. **Reinstall msodbcsql18 + mssql-tools18 but tell apt to prefer Microsoft’s unixODBC:**
+
+```bash
+sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18 unixodbc-dev
+```
+
+---
+
+### ⚡ If step (3) still fails
+
+Force dpkg to overwrite conflicts directly:
+
+```bash
+sudo dpkg -i --force-overwrite /var/cache/apt/archives/odbcinst*.deb
+sudo apt-get -f install
+```
+
+If `/var/cache/apt/archives` is empty, fetch fresh packages:
+
+```bash
+sudo apt-get download odbcinst odbcinst1debian2
+sudo dpkg -i --force-overwrite *.deb
+sudo apt-get -f install
+```
+
+---
+
+### 🔍 Verify installation
+
+```bash
+/opt/mssql-tools18/bin/sqlcmd -?
+```
+
+---
+
+👉 Since you’re on **Ubuntu (not pure Debian)**, the Microsoft repo for `bullseye` sometimes causes these conflicts.
+Another reliable way is to **use Microsoft’s tarball installer instead of apt** (bypassing all `odbcinst` conflicts).
+
+Would you like me to give you the **tarball method** (no apt conflicts, just extract + set PATH)?
+
+
+
+
+
+
+
+
+
+
+
 Got it 👍 I see what’s happening in your second screenshot.
 
 The error is still coming from **`odbcinst1debian2`** trying to overwrite files already provided by `unixodbc-common`. Your attempt with `dpkg --force-overwrite` failed because the `.deb` file was already cleaned from `/var/cache/apt/archives`.
