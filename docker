@@ -1,3 +1,14 @@
+
+
+ export FLASK_APP=superset
+ export SUPERSET_CONFIG_PATH=/home/supersetuser/superset_config/superset_config.py
+    cd ..
+    cd superset
+   source ~/superset/superset-venv/bin/activate
+    gunicorn -w 3 -k gevent -b 0.0.0.0:8088 "superset.app:create_app()"
+    nohup gunicorn -w 3 -k gevent -b 0.0.0.0:8088 "superset.app:create_app()" > ~/superset/superset.log 2>&1 &
+
+
 version: "3.9"
 
 services:
