@@ -1,3 +1,60 @@
+
+
+
+Thanks for sharing the screenshot 🙏. I can see the issue — it happens because of **package conflicts** while installing Microsoft SQL Server ODBC drivers and tools on Debian/Ubuntu.
+
+Here’s the key part from the error:
+
+```
+dpkg: error processing archive ... odbcinst1debian2_2.3.11-3_amd64.deb (--unpack):
+ trying to overwrite '/usr/lib/x86_64-linux-gnu/libodbcinst.so.2.0.0', 
+ which is also in package libodbcinst2:amd64 2.3.9-5ubuntu0.1
+```
+
+That means the **unixODBC** version installed by your system conflicts with the one being pulled from Microsoft’s repo.
+
+---
+
+✅ **Fix: Remove conflicting unixODBC packages first, then reinstall msodbcsql18 + mssql-tools18**
+
+Run these commands step by step:
+
+```bash
+# 1. Remove conflicting packages
+sudo apt-get remove -y unixodbc unixodbc-dev libodbcinst2 odbcinst odbcinst1debian2
+
+# 2. Clean up
+sudo apt-get autoremove -y
+sudo apt-get clean
+
+# 3. Update repo
+sudo apt-get update
+
+# 4. Install Microsoft ODBC driver + tools
+sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18
+
+# 5. (Optional) Reinstall unixODBC from MS repo if needed
+sudo apt-get install -y unixodbc-dev
+```
+
+---
+
+⚡ After installation, verify:
+
+```bash
+sqlcmd -?
+```
+
+You should see sqlcmd version info if everything worked.
+
+---
+
+👉 Would you like me to also give you a **one-liner script** (safe to run) that does all cleanup + reinstallation automatically?
+
+
+
+
+
 Here’s a safe upgrade plan to upgrade Apache Superset and install the extra SQL Server / ODBC dependencies on your existing Ubuntu + Gunicorn + NGINX deployment (without breaking your running setup).
 1️⃣ Pre-Checks (Very Important)
 Before making changes:
