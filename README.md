@@ -16,3 +16,5 @@ https://drive.google.com/file/d/11yqy1fh4u8REpBhitiwIN9JWkU_-EoO7/view?usp=shari
 
 
 pip install --upgrade "flask-limiter<3"
+
+pip install --upgrade "marshmallow>=3.20,<4"
