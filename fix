@@ -1,0 +1,80 @@
+
+#### 1️⃣ Clean up broken state
+
+```bash
+sudo dpkg --configure -a
+sudo apt -f install
+```
+
+#### 2️⃣ Remove conflicting unixODBC packages
+
+The Microsoft installer wants to replace files from these packages:
+
+* `unixodbc`
+* `unixodbc-common`
+* `libodbcinst2`
+
+Remove them:
+
+```bash
+sudo apt remove --purge unixodbc unixodbc-common libodbcinst2
+sudo apt autoremove -y
+```
+
+> **Tip:** If you see warnings about dependent packages, remove those too (for example `libodbc1`).
+
+#### 3️⃣ Clean cached .deb files
+
+```bash
+sudo apt clean
+sudo rm -f /var/cache/apt/archives/odbc*
+```
+
+#### 4️⃣ Reinstall Microsoft ODBC
+
+Now install again using Microsoft’s repo:
+
+```bash
+sudo ACCEPT_EULA=Y apt install -y msodbcsql18
+```
+
+(or the package you were installing, e.g. `odbcinst` or `msodbcsql17`).
+
+This time there should be **no overwrite errors** because the conflicting UnixODBC libs are gone.
+
+---
+
+### ✅ Verify
+
+Check the driver:
+
+```bash
+odbcinst -j
+odbcinst -q -d
+```
+
+You should see something like:
+
+```
+[ODBC Driver 18 for SQL Server]
+```
+
+---
+
+### ⚡ If You Still Need UnixODBC
+
+Microsoft drivers **include** their own compatible unixODBC build,
+so you usually don’t need to reinstall Ubuntu’s unixODBC.
+If you do need it, install **after** Microsoft’s driver:
+
+```bash
+sudo apt install -y unixodbc
+```
+
+It will pull a version that no longer conflicts.
+
+---
+
+💡 **Summary**:
+The safe solution is to **remove Ubuntu’s unixODBC packages first**,
+then install Microsoft’s driver. Forcing dpkg alone will not solve the conflict.
