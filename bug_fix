@@ -1,0 +1,77 @@
+
+```
+
+This typically happens when:
+
+1. **pyodbc** Python package isn’t installed inside the same virtualenv/container where Superset runs.
+2. System-level ODBC libraries (unixODBC + Microsoft SQL drivers) are missing or not linked.
+
+---
+
+
+
+#### 1. Install required system packages
+
+Inside your Superset container/host:
+
+```bash
+sudo apt-get update && \
+sudo apt-get install -y --no-install-recommends \
+    build-essential \
+    unixodbc-dev \
+    unixodbc \
+    curl \
+    gnupg2
+```
+
+#### 2. Add Microsoft SQL Server ODBC driver (if you connect to MSSQL)
+
+```bash
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+curl https://packages.microsoft.com/config/debian/11/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+sudo apt-get update
+ACCEPT_EULA=Y sudo apt-get install -y msodbcsql18 mssql-tools18
+echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' | sudo tee -a /etc/bash.bashrc
+```
+
+#### 3. Activate Superset venv & install Python deps
+
+If you’re running a **virtual environment**:
+
+```bash
+source /home/supersetuser/superset/superset-venv/bin/activate
+pip install --no-cache-dir pyodbc SQLAlchemy pandas numpy
+deactivate
+```
+
+If using **Docker**, add to your Dockerfile:
+
+```dockerfile
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential unixodbc-dev unixodbc curl gnupg2 && \
+    curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+    curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir pyodbc SQLAlchemy pandas numpy
+```
+
+#### 4. Restart Superset
+
+```bash
+superset stop
+superset start
+# or systemctl/docker restart depending on setup
+```
+
+---
+
+### 🔑 Tips
+
+* Make sure the **pyodbc** installation is inside the same environment where `superset` binary lives (`which superset` will tell you).
+* For Docker, rebuild and redeploy the container after editing the Dockerfile.
+* If you’re connecting to MSSQL/Azure SQL, verify connection string uses the `mssql+pyodbc://` driver.
+
+Once these packages are installed and the service restarted, Superset will be able to load the **pyodbc** engine and your dashboards should work again.
