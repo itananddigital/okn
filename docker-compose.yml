@@ -19,3 +19,14 @@ volumes:
   superset_data:
   superset_config:
   superset_logs:
+
+
+
+docker-compose down --no-rm
+docker-compose up -d
+or simply:
+
+bash
+Copy code
+docker-compose stop
+docker-compose start
