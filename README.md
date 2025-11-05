@@ -141,3 +141,9 @@ superset start
 
 Once these packages are installed and the service restarted, Superset will be able to load the **pyodbc** engine and your dashboards should work again.
 
+
+
+
+
+https://drive.google.com/file/d/1_skXcstb28UhblvHVXWFsDxPZNVGhSL6/view?usp=sharing
+
