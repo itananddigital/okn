@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  superset:
+    build:
+      context: ./superset/superset
+      dockerfile: Dockerfile
+    container_name: superset
+    environment:
+      - SUPERSET_SECRET_KEY=somesecretkey123
+    ports:
+      - "8088:8088"
+    volumes:
+      - superset_home:/app/superset_home
+    command: >
+      /bin/bash -c "
+      superset db upgrade &&
+      superset fab create-admin --username admin --firstname Admin --lastname User --email admin@example.com --password admin &&
+      superset init &&
+      gunicorn -w 3 --timeout 300 -b 0.0.0.0:8088 'superset.app:create_app()'
+      "
+    restart: unless-stopped
+
+volumes:
+  superset_home:
