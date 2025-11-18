@@ -1,4 +1,8 @@
 
+
+https://drive.google.com/file/d/16JnYaKOBay6O02Ft6F71o3kSPNWyf5gt/view?usp=sharing
+
+
 pip install --no-cache-dir --target=/app/.venv/lib/python3.11/site-packages pymssql
 
 
